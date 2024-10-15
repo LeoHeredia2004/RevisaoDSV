@@ -1,0 +1,27 @@
+### testar a raiz oo projeto
+GET http://localhost:5173
+
+### Listar tarefas
+GET http://localhost:5173/api/tarefas/listar
+
+### Buscar tarefa pelo id
+GET http://localhost:5173/api/tarefas/buscar/2
+
+### deletar tarefa pelo id
+DELETE http://localhost:5173/api/tarefas/deletar/2
+
+### Cadastrar tarefa
+POST http://localhost:5173/api/tarefas/cadastrar
+Content-Type: application/json
+
+{
+    "nome": "Estudar pra prova de devVisual"
+}
+
+### alterar tarefa
+PUT http://localhost:5173/api/tarefas/alterar/1
+Content-Type: application/json
+
+{
+    "nome": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+}
