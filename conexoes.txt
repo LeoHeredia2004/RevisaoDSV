@@ -1,0 +1,187 @@
+Claro! Vamos revisar relações entre tabelas em .NET Minimal API, abordando os conceitos essenciais e mostrando exemplos práticos de como implementá-los 
+usando Entity Framework Core.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1. Tipos de Relações entre Tabelas
+Um-para-um (One-to-One): Cada registro de uma tabela está associado a exatamente um registro em outra.
+Um-para-muitos (One-to-Many): Um registro de uma tabela está associado a muitos registros em outra.
+Muitos-para-muitos (Many-to-Many): Muitos registros de uma tabela estão associados a muitos registros em outra.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. Preparando o Ambiente
+No projeto, você precisará adicionar o Entity Framework Core e o SQLite para o banco de dados. Execute os seguintes comandos no terminal:
+
+dotnet add package Microsoft.EntityFrameworkCore
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+Depois, configure seu banco de dados e mapeamento na Minimal API.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+3. Criando as Relações
+
+
+Um-para-Muitos (One-to-Many)
+Exemplo: Uma Categoria pode ter vários Produtos.
+
+MODELOS:
+
+	public class Categoria
+	{
+	    public int Id { get; set; }
+	    public string Nome { get; set; }
+	    public List<Produto> Produtos { get; set; } = new();
+	}
+
+
+	public class Produto
+	{
+	    public int Id { get; set; }
+	    public string Nome { get; set; }
+	    public int CategoriaId { get; set; }
+	    public Categoria Categoria { get; set; }
+	}
+
+
+
+DBCONTEXT:
+
+	public class AppDbContext : DbContext
+	{
+	    public DbSet<Categoria> Categorias { get; set; }
+	    public DbSet<Produto> Produtos { get; set; }
+
+	    protected override void OnConfiguring(DbContextOptionsBuilder options) =>
+	        options.UseSqlite("Data Source=meubanco.db");
+	}
+
+
+Endpoint para Criar uma Categoria e Produtos:
+
+	var builder = WebApplication.CreateBuilder(args);
+	builder.Services.AddDbContext<AppDbContext>();
+
+	var app = builder.Build();
+
+	app.MapPost("/categoria", async (AppDbContext db, Categoria categoria) =>
+	{
+	    db.Categorias.Add(categoria);
+	    await db.SaveChangesAsync();
+	    return Results.Created($"/categoria/{categoria.Id}", categoria);
+	});
+
+	app.MapGet("/categorias", async (AppDbContext db) =>
+	    await db.Categorias.Include(c => c.Produtos).ToListAsync());
+
+	app.Run();
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Muitos-para-Muitos (Many-to-Many)
+Exemplo: Alunos e Cursos. Um aluno pode se inscrever em vários cursos, e um curso pode ter vários alunos.
+
+MODELOS:
+	public class Aluno
+	{
+	    public int Id { get; set; }
+	    public string Nome { get; set; }
+	    public List<AlunoCurso> AlunosCursos { get; set; } = new();
+	}
+
+
+	public class Curso
+	{
+	    public int Id { get; set; }
+	    public string Nome { get; set; }
+	    public List<AlunoCurso> AlunosCursos { get; set; } = new();
+	}
+
+	public class AlunoCurso
+	{
+	    public int AlunoId { get; set; }
+	    public Aluno Aluno { get; set; }
+    
+	    public int CursoId { get; set; }
+	    public Curso Curso { get; set; }
+	}
+
+
+DBCONTEXT:
+
+	public class AppDbContext : DbContext
+	{
+	    public DbSet<Aluno> Alunos { get; set; }
+	    public DbSet<Curso> Cursos { get; set; }
+
+	    protected override void OnModelCreating(ModelBuilder modelBuilder)
+	    {
+	        modelBuilder.Entity<AlunoCurso>()
+	            .HasKey(ac => new { ac.AlunoId, ac.CursoId });
+	    }
+
+	    protected override void OnConfiguring(DbContextOptionsBuilder options) =>
+	        options.UseSqlite("Data Source=meubanco.db");
+	}
+
+
+Endpoint para Criar Alunos e Cursos:
+
+
+	app.MapPost("/aluno", async (AppDbContext db, Aluno aluno) =>
+	{
+	    db.Alunos.Add(aluno);
+	    await db.SaveChangesAsync();
+	    return Results.Created($"/aluno/{aluno.Id}", aluno);
+	});
+
+	app.MapPost("/curso", async (AppDbContext db, Curso curso) =>
+	{
+	    db.Cursos.Add(curso);
+	    await db.SaveChangesAsync();
+	    return Results.Created($"/curso/{curso.Id}", curso);
+	});
+
+	app.Run();
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Um-para-Um (One-to-One)
+Exemplo: Uma Pessoa pode ter um Documento associado.
+
+MODELO:
+
+	public class Pessoa
+	{
+	    public int Id { get; set; }
+	    public string Nome { get; set; }
+	    public Documento Documento { get; set; }
+	}
+
+	public class Documento
+	{
+	    public int Id { get; set; }
+	    public string Numero { get; set; }
+	    public int PessoaId { get; set; }
+	    public Pessoa Pessoa { get; set; }
+	}
+
+
+DBCONTEXT:
+
+	public class AppDbContext : DbContext
+	{
+	    public DbSet<Pessoa> Pessoas { get; set; }
+	    public DbSet<Documento> Documentos { get; set; }
+
+	    protected override void OnConfiguring(DbContextOptionsBuilder options) =>
+	        options.UseSqlite("Data Source=meubanco.db");
+	}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+4. Comandos Úteis
+Criar o banco de dados:
+
+dotnet ef migrations add Inicial
+dotnet ef database update
+Testar a API: Use o Postman ou curl para enviar requisições HTTP aos endpoints.
+
